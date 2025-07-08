@@ -1,14 +1,14 @@
 """
 Agentic FMEA - Failure Mode and Effects Analysis for Agentic AI Systems
 
-A Python library for conducting FMEA (Failure Mode and Effects Analysis) on agentic AI systems,
-based on the Microsoft AI Red Team taxonomy of failure modes.
+A Python library for conducting FMEA (Failure Mode and Effects Analysis) on
+agentic AI systems, based on the Microsoft AI Red Team taxonomy of failure modes.
 
 Example usage:
     >>> from agentic_fmea import FMEAEntry, FMEAReport, SystemType, Subsystem
     >>> from agentic_fmea import RiskCalculator, FMEAReportGenerator
     >>> from datetime import datetime
-    >>> 
+    >>>
     >>> # Create an FMEA entry
     >>> entry = FMEAEntry(
     ...     id="memory_poisoning_001",
@@ -23,12 +23,13 @@ Example usage:
     ...     detection_method=DetectionMethod.LIVE_TELEMETRY,
     ...     mitigation=["Input validation", "Memory access controls"],
     ...     agent_capabilities=["autonomy", "memory", "environment_interaction"],
-    ...     potential_effects=["Agent misalignment", "Agent action abuse", "Data exfiltration"],
+    ...     potential_effects=["Agent misalignment", "Agent action abuse",
+    ...                        "Data exfiltration"],
     ...     created_date=datetime.now(),
     ...     last_updated=datetime.now(),
     ...     created_by="Security Team"
     ... )
-    >>> 
+    >>>
     >>> # Create a report
     >>> report = FMEAReport(
     ...     title="Email Assistant FMEA",
@@ -37,7 +38,7 @@ Example usage:
     ...     created_date=datetime.now(),
     ...     created_by="Security Team"
     ... )
-    >>> 
+    >>>
     >>> # Generate markdown report
     >>> generator = FMEAReportGenerator()
     >>> markdown = generator.generate_markdown_report(report)
@@ -45,10 +46,10 @@ Example usage:
 """
 
 from .entry import (
-    FMEAEntry, 
-    FMEAReport, 
-    DetectionMethod, 
-    SystemType, 
+    FMEAEntry,
+    FMEAReport,
+    DetectionMethod,
+    SystemType,
     Subsystem
 )
 
@@ -80,21 +81,21 @@ __all__ = [
     "FMEAEntry",
     "FMEAReport",
     "DetectionMethod",
-    "SystemType", 
+    "SystemType",
     "Subsystem",
-    
+
     # Taxonomy management
     "TaxonomyLoader",
     "FailureMode",
     "get_taxonomy_loader",
     "get_failure_mode",
     "search_failure_modes",
-    
+
     # Risk analysis
     "RiskCalculator",
     "RiskLevel",
     "RiskThresholds",
-    
+
     # Report generation
     "FMEAReportGenerator",
 ]

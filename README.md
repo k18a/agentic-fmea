@@ -306,4 +306,4 @@ If you use this library in your research, please cite:
 
 ---
 
-**Built with 🤖 by [Etherium](https://github.com/etherium) - Infrastructure as an act of love**
+**Built with 🤖 by [Etherium](https://www.etherium.nexus) - Infrastructure as an act of love**
