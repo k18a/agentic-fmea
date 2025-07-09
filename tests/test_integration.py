@@ -95,7 +95,7 @@ class TestCompleteWorkflow:
         
         # Verify report structure
         assert len(report.entries) == 2
-        assert report.risk_summary["High"] == 2  # Both entries are high risk
+        assert report.risk_summary()["High"] == 2  # Both entries are high risk
         
         # Step 4: Perform risk analysis
         calculator = RiskCalculator()
@@ -372,7 +372,7 @@ class TestRealWorldScenarios:
         
         # Verify high-risk findings
         assert analysis["statistics"]["total_entries"] == 2
-        high_risk = [entry for entry in security_entries if entry.risk_level in ["High", "Critical"]]
+        high_risk = [entry for entry in security_entries if calculator.thresholds.categorize_rpn(entry.rpn).value in ["High", "Critical"]]
         assert len(high_risk) == 2  # Both should be high risk
         
         # Generate actionable report

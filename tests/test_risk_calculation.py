@@ -56,8 +56,9 @@ class TestRiskCalculation:
         
         for severity, occurrence, detection, expected_level in test_cases:
             entry = self._create_test_entry(severity, occurrence, detection)
-            assert entry.risk_level == expected_level, (
-                f"RPN {entry.rpn} should be {expected_level}, got {entry.risk_level}"
+            actual_level = calculator.thresholds.categorize_rpn(entry.rpn).value
+            assert actual_level == expected_level, (
+                f"RPN {entry.rpn} should be {expected_level}, got {actual_level}"
             )
     
     def test_custom_risk_thresholds(self):
@@ -97,12 +98,13 @@ class TestRiskCalculation:
         # Test minimum values
         entry_min = self._create_test_entry(1, 1, 1)
         assert entry_min.rpn == 1
-        assert entry_min.risk_level == "Low"
+        calculator = RiskCalculator()
+        assert calculator.thresholds.categorize_rpn(entry_min.rpn).value == "Low"
         
         # Test maximum values
         entry_max = self._create_test_entry(10, 10, 10)
         assert entry_max.rpn == 1000
-        assert entry_max.risk_level == "Critical"
+        assert calculator.thresholds.categorize_rpn(entry_max.rpn).value == "Critical"
     
     def _create_test_entry(self, severity, occurrence, detection):
         """Helper method to create test FMEA entries."""

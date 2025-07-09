@@ -59,6 +59,16 @@ class FMEAReportGenerator:
     def _generate_markdown_summary(self, report: FMEAReport) -> str:
         """Generate Markdown summary section."""
         risk_analysis = self.risk_calculator.analyze_report_risk(report)
+        
+        # Handle empty reports
+        if "error" in risk_analysis:
+            return f"""## Executive Summary
+
+- **Total Failure Modes Analyzed:** 0
+- **Status:** No entries to analyze
+
+"""
+        
         stats = risk_analysis["statistics"]
         risk_dist = risk_analysis["risk_distribution"]
 
@@ -88,6 +98,15 @@ class FMEAReportGenerator:
     def _generate_markdown_risk_analysis(self, report: FMEAReport) -> str:
         """Generate Markdown risk analysis section."""
         risk_analysis = self.risk_calculator.analyze_report_risk(report)
+        
+        # Handle empty reports
+        if "error" in risk_analysis:
+            return """## Risk Analysis
+
+*No entries available for risk analysis.*
+
+"""
+        
         top_risks = risk_analysis["top_risks"]
         subsystem_risk = risk_analysis["subsystem_risk"]
 
@@ -125,6 +144,13 @@ class FMEAReportGenerator:
 
     def _generate_markdown_entries_table(self, report: FMEAReport) -> str:
         """Generate Markdown table of all entries."""
+        if not report.entries:
+            return """## All FMEA Entries
+
+*No entries to display.*
+
+"""
+        
         markdown = """## All FMEA Entries
 
 | ID | Taxonomy | Subsystem | Severity | Occurrence | Detection | RPN | Risk Level |
@@ -152,7 +178,7 @@ class FMEAReportGenerator:
 
         high_risk_entries = [
             entry for entry in report.entries
-            if entry.risk_level in ["Critical", "High"]
+            if self.risk_calculator.thresholds.categorize_rpn(entry.rpn).value in ["Critical", "High"]
         ]
 
         if not high_risk_entries:
@@ -213,7 +239,7 @@ class FMEAReportGenerator:
     def _generate_markdown_recommendations(self, report: FMEAReport) -> str:
         """Generate Markdown recommendations section."""
         high_risk_count = len([
-            e for e in report.entries if e.risk_level in ["Critical", "High"]
+            e for e in report.entries if self.risk_calculator.thresholds.categorize_rpn(e.rpn).value in ["Critical", "High"]
         ])
 
         markdown = """## Recommendations
@@ -229,10 +255,10 @@ class FMEAReportGenerator:
             )
 
             critical_entries = [
-                e for e in report.entries if e.risk_level == "Critical"
+                e for e in report.entries if self.risk_calculator.thresholds.categorize_rpn(e.rpn).value == "Critical"
             ]
             high_entries = [
-                e for e in report.entries if e.risk_level == "High"
+                e for e in report.entries if self.risk_calculator.thresholds.categorize_rpn(e.rpn).value == "High"
             ]
 
             if critical_entries:

@@ -98,17 +98,6 @@ class FMEAEntry:
         """Risk Priority Number = Severity × Occurrence × Detection."""
         return self.severity * self.occurrence * self.detection
 
-    @property
-    def risk_level(self) -> str:
-        """Categorize risk based on RPN."""
-        if self.rpn >= 500:
-            return "Critical"
-        elif self.rpn >= 200:
-            return "High"
-        elif self.rpn >= 100:
-            return "Medium"
-        else:
-            return "Low"
 
     def __post_init__(self):
         """Validate the entry after initialization."""
@@ -142,11 +131,15 @@ class FMEAReport:
     assumptions: Optional[List[str]] = None
     limitations: Optional[List[str]] = None
 
-    @property
-    def high_risk_entries(self) -> List[FMEAEntry]:
+    def high_risk_entries(self, risk_calculator=None) -> List[FMEAEntry]:
         """Get entries with high or critical risk levels."""
+        from .risk import RiskCalculator, RiskLevel
+        if risk_calculator is None:
+            risk_calculator = RiskCalculator()
+        
         return [
-            entry for entry in self.entries if entry.risk_level in ["High", "Critical"]
+            entry for entry in self.entries 
+            if risk_calculator.thresholds.categorize_rpn(entry.rpn) in [RiskLevel.HIGH, RiskLevel.CRITICAL]
         ]
 
     @property
@@ -154,12 +147,16 @@ class FMEAReport:
         """Get entries sorted by RPN (highest risk first)."""
         return sorted(self.entries, key=lambda x: x.rpn, reverse=True)
 
-    @property
-    def risk_summary(self) -> dict:
+    def risk_summary(self, risk_calculator=None) -> dict:
         """Summary of risk levels in the report."""
+        from .risk import RiskCalculator, RiskLevel
+        if risk_calculator is None:
+            risk_calculator = RiskCalculator()
+        
         summary = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0}
         for entry in self.entries:
-            summary[entry.risk_level] += 1
+            risk_level = risk_calculator.thresholds.categorize_rpn(entry.rpn)
+            summary[risk_level.value] += 1
         return summary
 
     def get_entries_by_subsystem(self, subsystem: Subsystem) -> List[FMEAEntry]:

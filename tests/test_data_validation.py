@@ -39,7 +39,9 @@ class TestFMEAEntryValidation:
         
         assert entry.id == "valid_test"
         assert entry.rpn == 125  # 5 × 5 × 5
-        assert entry.risk_level == "Medium"
+        from agentic_fmea.risk import RiskCalculator
+        calculator = RiskCalculator()
+        assert calculator.thresholds.categorize_rpn(entry.rpn).value == "Medium"
     
     def test_severity_range_validation(self):
         """Test that severity must be between 1 and 10."""
@@ -152,8 +154,8 @@ class TestFMEAReportValidation:
         )
         
         assert len(report.entries) == 0
-        assert report.risk_summary == {"Critical": 0, "High": 0, "Medium": 0, "Low": 0}
-        assert len(report.high_risk_entries) == 0
+        assert report.risk_summary() == {"Critical": 0, "High": 0, "Medium": 0, "Low": 0}
+        assert len(report.high_risk_entries()) == 0
         assert len(report.entries_by_risk) == 0
     
     def test_report_risk_summary(self):
@@ -174,7 +176,7 @@ class TestFMEAReportValidation:
         )
         
         expected_summary = {"Critical": 1, "High": 1, "Medium": 1, "Low": 1}
-        assert report.risk_summary == expected_summary
+        assert report.risk_summary() == expected_summary
     
     def test_high_risk_entries_filtering(self):
         """Test that high risk entries are filtered correctly."""
@@ -193,9 +195,11 @@ class TestFMEAReportValidation:
             created_by="Test"
         )
         
-        high_risk = report.high_risk_entries
+        from agentic_fmea.risk import RiskCalculator
+        calculator = RiskCalculator()
+        high_risk = report.high_risk_entries(calculator)
         assert len(high_risk) == 2  # High and Critical
-        assert all(entry.risk_level in ["High", "Critical"] for entry in high_risk)
+        assert all(calculator.thresholds.categorize_rpn(entry.rpn).value in ["High", "Critical"] for entry in high_risk)
     
     def test_entries_by_risk_sorting(self):
         """Test that entries are sorted by RPN correctly."""
@@ -378,12 +382,14 @@ class TestEdgeCases:
         # Minimum possible RPN
         min_entry = self._create_test_entry(1, 1, 1)  # RPN = 1
         assert min_entry.rpn == 1
-        assert min_entry.risk_level == "Low"
+        from agentic_fmea.risk import RiskCalculator
+        calculator = RiskCalculator()
+        assert calculator.thresholds.categorize_rpn(min_entry.rpn).value == "Low"
         
         # Maximum possible RPN
         max_entry = self._create_test_entry(10, 10, 10)  # RPN = 1000
         assert max_entry.rpn == 1000
-        assert max_entry.risk_level == "Critical"
+        assert calculator.thresholds.categorize_rpn(max_entry.rpn).value == "Critical"
     
     def test_large_mitigation_list(self):
         """Test that large mitigation lists are handled correctly."""
