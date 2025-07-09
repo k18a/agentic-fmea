@@ -29,6 +29,12 @@ class FailureMode:
 
     # Optional fields for existing failure modes
     why_increased_risk: Optional[str] = None
+    
+    # New guidance fields for AI safety knowledge base
+    recommended_mitigations: Optional[List[str]] = None
+    detection_strategies: Optional[List[str]] = None
+    implementation_notes: Optional[List[str]] = None
+    related_modes: Optional[List[str]] = None
 
 
 class TaxonomyLoader:
@@ -84,7 +90,11 @@ class TaxonomyLoader:
                     example=mode_data["example"],
                     canonical_effects=mode_data["canonical_effects"],
                     refs=mode_data["refs"],
-                    why_increased_risk=mode_data.get("why_increased_risk")
+                    why_increased_risk=mode_data.get("why_increased_risk"),
+                    recommended_mitigations=mode_data.get("recommended_mitigations"),
+                    detection_strategies=mode_data.get("detection_strategies"),
+                    implementation_notes=mode_data.get("implementation_notes"),
+                    related_modes=mode_data.get("related_modes")
                 )
                 failure_modes[mode_id] = failure_mode
 
@@ -137,6 +147,28 @@ class TaxonomyLoader:
                 results.append(mode)
 
         return results
+
+    def get_guidance_for_failure_mode(self, mode_id: str) -> Optional[Dict[str, Any]]:
+        """Get comprehensive guidance for a specific failure mode."""
+        failure_mode = self.get_failure_mode(mode_id)
+        if not failure_mode:
+            return None
+            
+        guidance = {
+            "id": failure_mode.id,
+            "description": failure_mode.description,
+            "category": failure_mode.category,
+            "pillar": failure_mode.pillar,
+            "novel": failure_mode.novel,
+            "recommended_mitigations": failure_mode.recommended_mitigations or [],
+            "detection_strategies": failure_mode.detection_strategies or [],
+            "implementation_notes": failure_mode.implementation_notes or [],
+            "related_modes": failure_mode.related_modes or [],
+            "potential_effects": failure_mode.potential_effects,
+            "example": failure_mode.example
+        }
+        
+        return guidance
 
     def validate_taxonomy(self) -> List[str]:
         """Validate the taxonomy structure and return any errors."""

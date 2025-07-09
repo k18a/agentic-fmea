@@ -36,6 +36,7 @@ class FMEAReportGenerator:
         markdown = self._generate_markdown_header(report)
         markdown += self._generate_markdown_summary(report)
         markdown += self._generate_markdown_risk_analysis(report)
+        markdown += self._generate_markdown_taxonomy_guidance(report)
         markdown += self._generate_markdown_entries_table(report)
         markdown += self._generate_markdown_detailed_entries(report)
         markdown += self._generate_markdown_recommendations(report)
@@ -142,6 +143,53 @@ class FMEAReportGenerator:
 
         return markdown + "\n"
 
+    def _generate_markdown_taxonomy_guidance(self, report: FMEAReport) -> str:
+        """Generate Markdown section showing taxonomy-specific guidance summary."""
+        if not report.entries:
+            return """## AI Safety Knowledge Base Summary
+
+*No entries available for taxonomy guidance.*
+
+"""
+        
+        markdown = """## AI Safety Knowledge Base Summary
+
+This section provides domain-specific guidance from the Microsoft AI Red Team taxonomy for the failure modes identified in this analysis.
+
+"""
+        
+        # Get unique taxonomy IDs from entries
+        taxonomy_ids = list(set(entry.taxonomy_id for entry in report.entries))
+        
+        for taxonomy_id in sorted(taxonomy_ids):
+            failure_mode = self.taxonomy_loader.get_failure_mode(taxonomy_id)
+            if failure_mode:
+                markdown += f"""### {taxonomy_id}
+
+**Type:** {failure_mode.category.replace('_', ' ').title()} ({failure_mode.pillar.title()})
+**Description:** {failure_mode.description}
+
+"""
+                
+                if failure_mode.recommended_mitigations:
+                    markdown += "**Key Mitigations:**\n"
+                    for mitigation in failure_mode.recommended_mitigations[:3]:  # Show top 3
+                        markdown += f"- {mitigation}\n"
+                    markdown += "\n"
+                
+                if failure_mode.detection_strategies:
+                    markdown += "**Detection Strategies:**\n"
+                    for strategy in failure_mode.detection_strategies[:3]:  # Show top 3
+                        markdown += f"- {strategy}\n"
+                    markdown += "\n"
+                
+                if failure_mode.related_modes:
+                    markdown += f"**Related Modes:** {', '.join(failure_mode.related_modes)}\n\n"
+                
+                markdown += "---\n\n"
+        
+        return markdown
+
     def _generate_markdown_entries_table(self, report: FMEAReport) -> str:
         """Generate Markdown table of all entries."""
         if not report.entries:
@@ -196,7 +244,8 @@ class FMEAReportGenerator:
     def _generate_entry_detail(self, entry: FMEAEntry, failure_mode) -> str:
         """Generate detailed markdown for a single entry."""
         risk_score = self.risk_calculator.calculate_risk_score(entry)
-        recommendations = self.risk_calculator.recommend_actions(entry)
+        basic_recommendations = self.risk_calculator.recommend_actions(entry)
+        detailed_recommendations = self.risk_calculator.get_detailed_recommendations(entry)
 
         markdown = f"""### {entry.id}
 
@@ -225,9 +274,31 @@ class FMEAReportGenerator:
         for mitigation in entry.mitigation:
             markdown += f"- {mitigation}\n"
 
-        markdown += "\n**Recommended Actions:**\n"
-        for recommendation in recommendations:
+        # Add general recommendations
+        markdown += "\n**General Recommended Actions:**\n"
+        for recommendation in detailed_recommendations["general_actions"]:
             markdown += f"- {recommendation}\n"
+
+        # Add taxonomy-specific guidance
+        if detailed_recommendations["taxonomy_specific"].get("recommended_mitigations"):
+            markdown += "\n**Failure Mode Specific Mitigations:**\n"
+            for mitigation in detailed_recommendations["taxonomy_specific"]["recommended_mitigations"]:
+                markdown += f"- {mitigation}\n"
+
+        if detailed_recommendations["taxonomy_specific"].get("detection_strategies"):
+            markdown += "\n**Detection Strategies:**\n"
+            for strategy in detailed_recommendations["taxonomy_specific"]["detection_strategies"]:
+                markdown += f"- {strategy}\n"
+
+        if detailed_recommendations["taxonomy_specific"].get("implementation_notes"):
+            markdown += "\n**Implementation Notes:**\n"
+            for note in detailed_recommendations["taxonomy_specific"]["implementation_notes"]:
+                markdown += f"- {note}\n"
+
+        if detailed_recommendations["taxonomy_specific"].get("related_modes"):
+            markdown += "\n**Related Failure Modes:**\n"
+            for related in detailed_recommendations["taxonomy_specific"]["related_modes"]:
+                markdown += f"- {related}\n"
 
         if entry.scenario:
             markdown += f"\n**Scenario:** {entry.scenario}\n"

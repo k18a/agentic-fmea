@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from .entry import FMEAEntry, FMEAReport
+from .taxonomy import TaxonomyLoader
 
 
 class RiskLevel(str, Enum):
@@ -44,14 +45,16 @@ class RiskThresholds:
 class RiskCalculator:
     """Calculates and analyzes risk metrics for FMEA entries."""
 
-    def __init__(self, thresholds: Optional[RiskThresholds] = None):
+    def __init__(self, thresholds: Optional[RiskThresholds] = None, taxonomy_loader: Optional[TaxonomyLoader] = None):
         """
         Initialize the risk calculator.
 
         Args:
             thresholds: Custom risk thresholds. If None, uses default.
+            taxonomy_loader: Taxonomy loader instance. If None, creates default.
         """
         self.thresholds = thresholds or RiskThresholds()
+        self.taxonomy_loader = taxonomy_loader or TaxonomyLoader()
 
     def calculate_rpn(self, severity: int, occurrence: int, detection: int) -> int:
         """Calculate Risk Priority Number."""
@@ -327,5 +330,77 @@ class RiskCalculator:
         if entry.occurrence >= 7:  # High occurrence
             recommendations.append("Address root causes in system design")
             recommendations.append("Implement preventive controls")
+
+        # Add taxonomy-specific mitigations
+        failure_mode = self.taxonomy_loader.get_failure_mode(entry.taxonomy_id)
+        if failure_mode and failure_mode.recommended_mitigations:
+            recommendations.extend(failure_mode.recommended_mitigations)
+
+        return recommendations
+
+    def get_detailed_recommendations(self, entry: FMEAEntry) -> Dict[str, Any]:
+        """Get detailed recommendations with taxonomy-specific guidance."""
+        recommendations = {
+            "general_actions": [],
+            "taxonomy_specific": {},
+            "detection_strategies": [],
+            "implementation_notes": [],
+            "related_modes": []
+        }
+
+        risk_score = self.calculate_risk_score(entry)
+        risk_level = risk_score["risk_level"]
+
+        # General risk-level recommendations
+        if risk_level == RiskLevel.CRITICAL:
+            recommendations["general_actions"].extend([
+                "Immediate action required - halt system deployment until resolved",
+                "Implement emergency monitoring and alerting",
+                "Establish incident response procedures",
+                "Consider system redesign to eliminate failure mode"
+            ])
+        elif risk_level == RiskLevel.HIGH:
+            recommendations["general_actions"].extend([
+                "High priority - implement mitigation before deployment",
+                "Establish monitoring and detection mechanisms",
+                "Develop contingency plans",
+                "Regular risk assessment reviews"
+            ])
+        elif risk_level == RiskLevel.MEDIUM:
+            recommendations["general_actions"].extend([
+                "Medium priority - address in next development cycle",
+                "Implement preventive measures",
+                "Monitor for trends",
+                "Document lessons learned"
+            ])
+        else:  # LOW
+            recommendations["general_actions"].extend([
+                "Low priority - address as resources permit",
+                "Maintain awareness of potential issues",
+                "Include in routine monitoring"
+            ])
+
+        # Add specific recommendations based on failure mode characteristics
+        if entry.detection >= 7:  # Hard to detect
+            recommendations["general_actions"].append("Implement automated detection mechanisms")
+            recommendations["general_actions"].append("Establish regular audit procedures")
+
+        if entry.severity >= 8:  # High severity
+            recommendations["general_actions"].append("Implement fail-safe mechanisms")
+            recommendations["general_actions"].append("Add redundancy to critical paths")
+
+        if entry.occurrence >= 7:  # High occurrence
+            recommendations["general_actions"].append("Address root causes in system design")
+            recommendations["general_actions"].append("Implement preventive controls")
+
+        # Get taxonomy-specific guidance
+        failure_mode = self.taxonomy_loader.get_failure_mode(entry.taxonomy_id)
+        if failure_mode:
+            recommendations["taxonomy_specific"] = {
+                "recommended_mitigations": failure_mode.recommended_mitigations or [],
+                "detection_strategies": failure_mode.detection_strategies or [],
+                "implementation_notes": failure_mode.implementation_notes or [],
+                "related_modes": failure_mode.related_modes or []
+            }
 
         return recommendations
