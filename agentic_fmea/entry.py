@@ -21,6 +21,7 @@ class DetectionMethod(str, Enum):
     TESTING = "testing"
     CODE_REVIEW = "code_review"
     AUDIT_TRAIL = "audit_trail"
+    OTHER = "other"
 
 
 class SystemType(str, Enum):
@@ -33,6 +34,7 @@ class SystemType(str, Enum):
     EVENT_DRIVEN = "event_driven"
     DECLARATIVE = "declarative"
     EVALUATIVE = "evaluative"
+    OTHER = "other"
 
 
 class Subsystem(str, Enum):
@@ -47,6 +49,7 @@ class Subsystem(str, Enum):
     COORDINATION = "coordination"
     IDENTITY = "identity"
     CONTROL_FLOW = "control_flow"
+    OTHER = "other"
 
 
 @dataclass
@@ -92,6 +95,11 @@ class FMEAEntry:
     existing_controls: Optional[List[str]] = None
     recommended_actions: Optional[List[str]] = None
     priority: Optional[str] = None
+    
+    # Custom fields for flexible enum support
+    custom_system_type: Optional[str] = None
+    custom_subsystem: Optional[str] = None
+    custom_detection_method: Optional[str] = None
 
     @property
     def rpn(self) -> int:
@@ -111,6 +119,35 @@ class FMEAEntry:
         # Validate that mitigation list is not empty
         if not self.mitigation:
             raise ValueError("At least one mitigation strategy must be provided")
+        
+        # Validate custom fields when OTHER enum values are used
+        if self.system_type == SystemType.OTHER:
+            if self.custom_system_type is None:
+                raise ValueError("custom_system_type must be provided when system_type is OTHER")
+            if not self.custom_system_type.strip():
+                raise ValueError("custom_system_type cannot be empty or whitespace")
+                
+        if self.subsystem == Subsystem.OTHER:
+            if self.custom_subsystem is None:
+                raise ValueError("custom_subsystem must be provided when subsystem is OTHER")
+            if not self.custom_subsystem.strip():
+                raise ValueError("custom_subsystem cannot be empty or whitespace")
+                
+        if self.detection_method == DetectionMethod.OTHER:
+            if self.custom_detection_method is None:
+                raise ValueError("custom_detection_method must be provided when detection_method is OTHER")
+            if not self.custom_detection_method.strip():
+                raise ValueError("custom_detection_method cannot be empty or whitespace")
+        
+        # Validate that custom fields are not provided when NOT using OTHER
+        if self.system_type != SystemType.OTHER and self.custom_system_type is not None:
+            raise ValueError("custom_system_type should only be provided when system_type is OTHER")
+            
+        if self.subsystem != Subsystem.OTHER and self.custom_subsystem is not None:
+            raise ValueError("custom_subsystem should only be provided when subsystem is OTHER")
+            
+        if self.detection_method != DetectionMethod.OTHER and self.custom_detection_method is not None:
+            raise ValueError("custom_detection_method should only be provided when detection_method is OTHER")
 
 
 @dataclass
