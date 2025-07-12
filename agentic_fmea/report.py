@@ -5,9 +5,13 @@ This module provides functions for generating Markdown and HTML reports
 from FMEA entries and analysis results.
 """
 
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 from pathlib import Path
+import base64
+import io
+
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from .entry import FMEAEntry, FMEAReport
 from .risk import RiskCalculator
@@ -30,6 +34,13 @@ class FMEAReportGenerator:
         """
         self.risk_calculator = risk_calculator or RiskCalculator()
         self.taxonomy_loader = taxonomy_loader or TaxonomyLoader()
+        
+        # Set up Jinja2 template environment
+        template_dir = Path(__file__).parent / "templates"
+        self.jinja_env = Environment(
+            loader=FileSystemLoader(template_dir),
+            autoescape=select_autoescape(['html', 'xml'])
+        )
 
     def generate_markdown_report(self, report: FMEAReport) -> str:
         """Generate a comprehensive Markdown report."""
@@ -414,30 +425,170 @@ This section provides domain-specific guidance from the Microsoft AI Red Team ta
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(csv_content)
 
-    def generate_html_report(self, report: FMEAReport) -> str:
-        """Generate HTML report (basic implementation)."""
-        # Convert markdown to HTML (basic implementation)
-        markdown_content = self.generate_markdown_report(report)
+    def generate_html_report(self, report: FMEAReport, include_charts: bool = True) -> str:
+        """
+        Generate professional HTML report using Jinja2 templates.
+        
+        Args:
+            report: FMEA report to generate HTML for
+            include_charts: Whether to include embedded visualizations
+            
+        Returns:
+            Complete HTML report as string
+        """
+        # Generate charts if requested
+        charts = {}
+        if include_charts and report.entries:
+            charts = self._generate_chart_images(report)
+        
+        # Analyze risk data
+        risk_analysis = self.risk_calculator.analyze_report_risk(report)
+        
+        # Prepare template context
+        context = self._prepare_template_context(report, risk_analysis, charts)
+        
+        # Render the main template
+        template = self.jinja_env.get_template('base_report.html')
+        return template.render(**context)
 
-        # Simple markdown to HTML conversion
-        html_content = f"""<!DOCTYPE html>
-<html>
-<head>
-    <title>FMEA Report: {report.title}</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 40px; }}
-        table {{ border-collapse: collapse; width: 100%; }}
-        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-        th {{ background-color: #f2f2f2; }}
-        .critical {{ background-color: #ffebee; }}
-        .high {{ background-color: #fff3e0; }}
-        .medium {{ background-color: #f3e5f5; }}
-        .low {{ background-color: #e8f5e8; }}
-    </style>
-</head>
-<body>
-    <pre>{markdown_content}</pre>
-</body>
-</html>"""
+    def _generate_chart_images(self, report: FMEAReport) -> Dict[str, str]:
+        """
+        Generate base64 encoded chart images for embedding in HTML.
+        
+        Args:
+            report: FMEA report to generate charts for
+            
+        Returns:
+            Dictionary mapping chart names to base64 data URIs
+        """
+        charts = {}
+        
+        try:
+            # Generate risk distribution chart
+            fig_dist = self.risk_calculator.plot_risk_distribution(report)
+            charts['risk_distribution'] = self._figure_to_base64(fig_dist)
+            import matplotlib.pyplot as plt
+            plt.close(fig_dist)
+            
+            # Generate risk matrix chart
+            fig_matrix = self.risk_calculator.plot_risk_matrix(
+                report.entries, 
+                title="Risk Matrix: Severity vs Occurrence"
+            )
+            charts['risk_matrix'] = self._figure_to_base64(fig_matrix)
+            plt.close(fig_matrix)
+            
+        except Exception as e:
+            # If chart generation fails, continue without charts
+            print(f"Warning: Chart generation failed: {e}")
+            
+        return charts
+    
+    def _figure_to_base64(self, fig) -> str:
+        """
+        Convert matplotlib figure to base64 data URI.
+        
+        Args:
+            fig: Matplotlib figure object
+            
+        Returns:
+            Base64 data URI string
+        """
+        # Save figure to bytes buffer
+        buffer = io.BytesIO()
+        fig.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+        buffer.seek(0)
+        
+        # Encode to base64
+        image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        buffer.close()
+        
+        # Return as data URI
+        return f"data:image/png;base64,{image_base64}"
+    
+    def _prepare_template_context(self, report: FMEAReport, risk_analysis: Dict[str, Any], charts: Dict[str, str]) -> Dict[str, Any]:
+        """
+        Prepare the context dictionary for Jinja2 template rendering.
+        
+        Args:
+            report: FMEA report
+            risk_analysis: Risk analysis results
+            charts: Base64 encoded chart images
+            
+        Returns:
+            Template context dictionary
+        """
+        # Handle empty reports
+        if "error" in risk_analysis:
+            statistics = {"total_entries": 0, "mean_rpn": 0, "max_rpn": 0, "median_rpn": 0}
+            risk_distribution = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0}
+        else:
+            statistics = risk_analysis["statistics"]
+            risk_distribution = risk_analysis["risk_distribution"]
+        
+        # Sort entries by RPN (highest first)
+        sorted_entries = sorted(report.entries, key=lambda x: x.rpn, reverse=True)
+        
+        # Add risk level to each entry for template convenience
+        for entry in sorted_entries:
+            entry.risk_level = self.risk_calculator.thresholds.categorize_rpn(entry.rpn)
+            entry.severity_label = self.risk_calculator._get_severity_label(entry.severity)
+            entry.occurrence_label = self.risk_calculator._get_occurrence_label(entry.occurrence)
+            entry.detection_label = self.risk_calculator._get_detection_label(entry.detection)
+        
+        # Get high-risk entries for detailed analysis
+        high_risk_entries = [
+            entry for entry in sorted_entries
+            if self.risk_calculator.thresholds.categorize_rpn(entry.rpn).value in ["Critical", "High"]
+        ]
+        
+        # Prepare detailed recommendations for high-risk entries
+        for entry in high_risk_entries:
+            entry.detailed_recommendations = self.risk_calculator.get_detailed_recommendations(entry)
+            entry.failure_mode = self.taxonomy_loader.get_failure_mode(entry.taxonomy_id)
+        
+        # Get unique taxonomy IDs for knowledge base
+        unique_taxonomy_ids = list(set(entry.taxonomy_id for entry in report.entries))
+        
+        # Group entries by taxonomy for knowledge base section
+        entries_by_taxonomy = {}
+        for entry in report.entries:
+            if entry.taxonomy_id not in entries_by_taxonomy:
+                entries_by_taxonomy[entry.taxonomy_id] = []
+            entries_by_taxonomy[entry.taxonomy_id].append(entry)
+        
+        # Separate entries by risk level for recommendations
+        critical_entries = [
+            entry for entry in sorted_entries
+            if self.risk_calculator.thresholds.categorize_rpn(entry.rpn).value == "Critical"
+        ]
+        high_entries = [
+            entry for entry in sorted_entries
+            if self.risk_calculator.thresholds.categorize_rpn(entry.rpn).value == "High"
+        ]
+        
+        return {
+            'report': report,
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'statistics': statistics,
+            'risk_distribution': risk_distribution,
+            'risk_analysis': risk_analysis,
+            'charts': charts,
+            'sorted_entries': sorted_entries,
+            'high_risk_entries': high_risk_entries,
+            'critical_entries': critical_entries,
+            'high_entries': high_entries,
+            'unique_taxonomy_ids': sorted(unique_taxonomy_ids),
+            'entries_by_taxonomy': entries_by_taxonomy,
+            'taxonomy_loader': self.taxonomy_loader,
+        }
 
-        return html_content
+    def save_html_report(self, report: FMEAReport, output_path: str, include_charts: bool = True) -> None:
+        """Save professional HTML report to file."""
+        html_content = self.generate_html_report(report, include_charts)
+        
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)

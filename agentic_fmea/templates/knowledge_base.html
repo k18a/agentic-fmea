@@ -1,0 +1,79 @@
+<section id="knowledge-base" class="section">
+    <h2 class="section-title">AI Safety Knowledge Base Summary</h2>
+    
+    {% if unique_taxonomy_ids %}
+    <p style="margin-bottom: 1.5rem; font-style: italic; background: #f8f9fa; padding: 1rem; border-radius: 8px; border-left: 4px solid #3498db;">
+        This section provides domain-specific guidance from the Microsoft AI Red Team taxonomy for the failure modes identified in this analysis.
+        Click on each section to expand detailed mitigation strategies and detection approaches.
+    </p>
+    
+    {% for taxonomy_id in unique_taxonomy_ids %}
+    {% set failure_mode = taxonomy_loader.get_failure_mode(taxonomy_id) %}
+    {% if failure_mode %}
+    <div class="collapsible" style="margin-bottom: 1rem;">
+        <div class="collapsible-header" onclick="toggleCollapsible(this)">
+            <div>
+                <strong>{{ taxonomy_id }}</strong> - {{ failure_mode.category.replace('_', ' ').title() }} ({{ failure_mode.pillar.title() }})
+            </div>
+            <div class="expand-icon">▼</div>
+        </div>
+        <div class="collapsible-content">
+            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+                <h4 style="color: #2c3e50; margin-bottom: 0.5rem;">Description</h4>
+                <p>{{ failure_mode.description }}</p>
+            </div>
+
+            {% if failure_mode.recommended_mitigations %}
+            <div style="background: #e8f5e8; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #4caf50;">
+                <h4 style="color: #2e7d32; margin-bottom: 1rem;">Key Mitigations</h4>
+                <ul style="margin: 0; padding-left: 1.5rem;">
+                    {% for mitigation in failure_mode.recommended_mitigations %}
+                    <li style="margin-bottom: 0.5rem;">{{ mitigation }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if failure_mode.detection_strategies %}
+            <div style="background: #e1f5fe; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #03a9f4;">
+                <h4 style="color: #0277bd; margin-bottom: 1rem;">Detection Strategies</h4>
+                <ul style="margin: 0; padding-left: 1.5rem;">
+                    {% for strategy in failure_mode.detection_strategies %}
+                    <li style="margin-bottom: 0.5rem;">{{ strategy }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if failure_mode.implementation_notes %}
+            <div style="background: #fff8e1; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #ffc107;">
+                <h4 style="color: #f57c00; margin-bottom: 1rem;">Implementation Notes</h4>
+                <ul style="margin: 0; padding-left: 1.5rem;">
+                    {% for note in failure_mode.implementation_notes %}
+                    <li style="margin-bottom: 0.5rem;">{{ note }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if failure_mode.related_modes %}
+            <div style="background: #fce4ec; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #e91e63;">
+                <h4 style="color: #c2185b; margin-bottom: 1rem;">Related Failure Modes</h4>
+                <p style="margin: 0;">{{ failure_mode.related_modes | join(', ') }}</p>
+            </div>
+            {% endif %}
+
+            <div style="background: #f3e5f5; padding: 1rem; border-radius: 8px; font-size: 0.9rem; color: #7b1fa2;">
+                <strong>Type:</strong> {{ failure_mode.category.replace('_', ' ').title() }} | 
+                <strong>Pillar:</strong> {{ failure_mode.pillar.title() }} |
+                <strong>Entries using this taxonomy:</strong> {{ entries_by_taxonomy[taxonomy_id] | length }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    
+    {% else %}
+    <p style="font-style: italic; color: #7f8c8d;">No entries available for taxonomy guidance.</p>
+    {% endif %}
+</section>

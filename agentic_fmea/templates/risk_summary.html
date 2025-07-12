@@ -1,0 +1,90 @@
+<section id="executive-summary" class="section">
+    <h2 class="section-title">Executive Summary</h2>
+    
+    <!-- KPI Cards -->
+    <div class="kpi-container">
+        <div class="kpi-card">
+            <div class="kpi-value">{{ statistics.total_entries }}</div>
+            <div class="kpi-label">Total Failure Modes</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-value">{{ "%.1f"|format(statistics.mean_rpn) }}</div>
+            <div class="kpi-label">Mean RPN</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-value">{{ statistics.max_rpn }}</div>
+            <div class="kpi-label">Maximum RPN</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-value">{{ risk_distribution.Critical + risk_distribution.High }}</div>
+            <div class="kpi-label">High/Critical Risks</div>
+        </div>
+    </div>
+
+    <!-- Risk Distribution Chart -->
+    {% if charts.risk_distribution %}
+    <div class="chart-container">
+        <div class="chart-title">Risk Level Distribution</div>
+        <img src="{{ charts.risk_distribution }}" alt="Risk Distribution Chart" style="max-width: 100%; height: auto;">
+        <div class="chart-description">
+            This chart shows the distribution of failure modes across different risk levels.
+            Focus should be placed on reducing the number of Critical and High risk items.
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Risk Distribution Table -->
+    <h3>Risk Distribution</h3>
+    {% if statistics.total_entries > 0 %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Risk Level</th>
+                    <th>Count</th>
+                    <th>Percentage</th>
+                    <th>Visual</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="risk-cell critical">Critical</span></td>
+                    <td>{{ risk_distribution.Critical }}</td>
+                    <td>{{ "%.1f"|format(risk_distribution.Critical / statistics.total_entries * 100) }}%</td>
+                    <td>
+                        <div style="background: #ffebee; height: 20px; width: {{ (risk_distribution.Critical / statistics.total_entries * 100)|int }}%; border: 1px solid #f44336;"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="risk-cell high">High</span></td>
+                    <td>{{ risk_distribution.High }}</td>
+                    <td>{{ "%.1f"|format(risk_distribution.High / statistics.total_entries * 100) }}%</td>
+                    <td>
+                        <div style="background: #fff3e0; height: 20px; width: {{ (risk_distribution.High / statistics.total_entries * 100)|int }}%; border: 1px solid #ff9800;"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="risk-cell medium">Medium</span></td>
+                    <td>{{ risk_distribution.Medium }}</td>
+                    <td>{{ "%.1f"|format(risk_distribution.Medium / statistics.total_entries * 100) }}%</td>
+                    <td>
+                        <div style="background: #f3e5f5; height: 20px; width: {{ (risk_distribution.Medium / statistics.total_entries * 100)|int }}%; border: 1px solid #9c27b0;"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="risk-cell low">Low</span></td>
+                    <td>{{ risk_distribution.Low }}</td>
+                    <td>{{ "%.1f"|format(risk_distribution.Low / statistics.total_entries * 100) }}%</td>
+                    <td>
+                        <div style="background: #e8f5e8; height: 20px; width: {{ (risk_distribution.Low / statistics.total_entries * 100)|int }}%; border: 1px solid #4caf50;"></div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="text-align: center; color: #7f8c8d; font-style: italic; padding: 2rem;">
+        No failure mode entries to analyze. Add entries to see risk distribution.
+    </p>
+    {% endif %}
+</section>

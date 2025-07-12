@@ -1,0 +1,125 @@
+<div class="collapsible risk-{{ entry.risk_level.value.lower() }}">
+    <div class="collapsible-header" onclick="toggleCollapsible(this)">
+        <div>
+            <strong>{{ entry.id }}</strong> - {{ entry.taxonomy_id }} 
+            <span class="risk-cell {{ entry.risk_level.value.lower() }}">(RPN: {{ entry.rpn }} - {{ entry.risk_level.value }})</span>
+        </div>
+        <div class="expand-icon">▼</div>
+    </div>
+    <div class="collapsible-content">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1.5rem;">
+            <div>
+                <h4>System Information</h4>
+                <p><strong>System Type:</strong> {{ entry.system_type.value }}</p>
+                <p><strong>Subsystem:</strong> {{ entry.subsystem.value }}</p>
+                <p><strong>Detection Method:</strong> {{ entry.detection_method.value }}</p>
+                <p><strong>Created:</strong> {{ entry.created_date.strftime('%Y-%m-%d') }} by {{ entry.created_by }}</p>
+            </div>
+            <div>
+                <h4>Risk Assessment</h4>
+                <p><strong>Severity:</strong> {{ entry.severity }}/10 ({{ entry.severity_label }})</p>
+                <p><strong>Occurrence:</strong> {{ entry.occurrence }}/10 ({{ entry.occurrence_label }})</p>
+                <p><strong>Detection:</strong> {{ entry.detection }}/10 ({{ entry.detection_label }})</p>
+                <p><strong>Risk Level:</strong> <span class="risk-cell {{ entry.risk_level.value.lower() }}">{{ entry.risk_level.value }}</span></p>
+            </div>
+        </div>
+
+        {% if entry.failure_mode %}
+        <div style="margin-bottom: 1.5rem;">
+            <h4>Failure Mode Description</h4>
+            <p style="background: #f8f9fa; padding: 1rem; border-radius: 4px; border-left: 4px solid #3498db;">
+                {{ entry.failure_mode.description }}
+            </p>
+        </div>
+        {% endif %}
+
+        <div style="margin-bottom: 1.5rem;">
+            <h4>Cause and Effect</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <strong>Cause:</strong>
+                    <p style="background: #fff3e0; padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">
+                        {{ entry.cause }}
+                    </p>
+                </div>
+                <div>
+                    <strong>Effect:</strong>
+                    <p style="background: #ffebee; padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">
+                        {{ entry.effect }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <h4>Current Mitigation Strategies</h4>
+            <ul style="background: #e8f5e8; padding: 1rem; border-radius: 4px;">
+                {% for mitigation in entry.mitigation %}
+                <li>{{ mitigation }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        {% if entry.detailed_recommendations.general_actions %}
+        <div style="margin-bottom: 1.5rem;">
+            <h4>Recommended Actions</h4>
+            <ul style="background: #f0f8ff; padding: 1rem; border-radius: 4px; border-left: 4px solid #2196f3;">
+                {% for action in entry.detailed_recommendations.general_actions %}
+                <li>{{ action }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if entry.detailed_recommendations.taxonomy_specific.recommended_mitigations %}
+        <div style="margin-bottom: 1.5rem;">
+            <h4>Failure Mode Specific Mitigations</h4>
+            <ul style="background: #f3e5f5; padding: 1rem; border-radius: 4px; border-left: 4px solid #9c27b0;">
+                {% for mitigation in entry.detailed_recommendations.taxonomy_specific.recommended_mitigations %}
+                <li>{{ mitigation }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if entry.detailed_recommendations.taxonomy_specific.detection_strategies %}
+        <div style="margin-bottom: 1.5rem;">
+            <h4>Detection Strategies</h4>
+            <ul style="background: #e1f5fe; padding: 1rem; border-radius: 4px; border-left: 4px solid #03a9f4;">
+                {% for strategy in entry.detailed_recommendations.taxonomy_specific.detection_strategies %}
+                <li>{{ strategy }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if entry.detailed_recommendations.taxonomy_specific.implementation_notes %}
+        <div style="margin-bottom: 1.5rem;">
+            <h4>Implementation Notes</h4>
+            <ul style="background: #fff8e1; padding: 1rem; border-radius: 4px; border-left: 4px solid #ffc107;">
+                {% for note in entry.detailed_recommendations.taxonomy_specific.implementation_notes %}
+                <li>{{ note }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if entry.detailed_recommendations.taxonomy_specific.related_modes %}
+        <div style="margin-bottom: 1.5rem;">
+            <h4>Related Failure Modes</h4>
+            <p style="background: #fce4ec; padding: 1rem; border-radius: 4px; border-left: 4px solid #e91e63;">
+                {{ entry.detailed_recommendations.taxonomy_specific.related_modes | join(', ') }}
+            </p>
+        </div>
+        {% endif %}
+
+        {% if entry.scenario %}
+        <div style="margin-bottom: 1.5rem;">
+            <h4>Scenario</h4>
+            <p style="background: #f1f8e9; padding: 1rem; border-radius: 4px; border-left: 4px solid #8bc34a;">
+                {{ entry.scenario }}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
